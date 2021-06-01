@@ -1,0 +1,54 @@
+// Files and outputs are found
+FileDirectory = getDirectory("image")
+name = getTitle(); 
+dotIndex = indexOf(name, "."); 
+title = substring(name, 0, dotIndex); 
+
+
+dir = getDirectory("image") + "Output/";
+Path1 = dir + title + "_outlines"
+Path2 = dir + title + "_mask"
+Path3 = dir + title + "_results"
+
+// The following are used in various combinations to get best results for threshold of brightfield images
+run("Remove Outliers...", "radius=50 threshold=50 which=Dark");
+run("Subtract Background...", "rolling=25 light");
+run("Smooth"); // This is always pefromed
+run("Find Edges");
+run("Enhance Contrast", "saturated= 0.35");
+
+// Depending on the quality of the threshold, noise is removed with different methods  
+setOption("BlackBackground", false);
+run("Make Binary"); // This is always pefromed
+run("Invert");
+run("Despeckle");
+run("Erode");
+run("Watershed");
+
+// The following are used in various combinations to get best results for threshold of sytox images
+run("Auto Threshold", "method=Default dark");
+run("Convert to Mask");
+run("Invert");
+run("Smooth");
+run("Auto Threshold", "method=Otsu white");
+run("Despeckle");
+run("Watershed"); 
+run("Find Edges");
+setOption("BlackBackground", true);
+run("Make Binary");
+run("Close-");
+run("Despeckle");
+run("Erode");
+
+// The number of bacteria (particles) is found by removing large and small particles
+run("Analyze Particles...", "size=2-300 show=Masks display clear");
+// Overlapping particles are separated, this is especially important when density is high
+run("Watershed");
+// The particle size threshold is applied again
+run("Analyze Particles...", "size=2-300 show=[Bare Outlines] display clear");
+//Results are saved
+saveAs("Tiff", Path3);
+selectWindow(name);
+saveAs("Tiff", Path2);
+selectWindow("Results");
+saveAs("text", Path3);
